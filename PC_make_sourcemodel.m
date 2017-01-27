@@ -1,6 +1,4 @@
-datapath = 'C:\Users\Justin\Desktop\MEGCanCam';
-megpath = strcat('\MEG_Resting\sub-CC722',subjectNumber,'\meg\rest_raw.fif');
-
+datapath = 'C:\Users\Lily\Dropbox\NetworkofMind';
 
 megpath = [datapath '\MEG_Resting\sub-CC722891\meg\rest_raw.fif'];
 outputpath = '.\sub891\';

@@ -1,9 +1,6 @@
+mkdir('./sub891/');
+outputpath = './sub891/';
 
-
-
-mkdir('.subjects/sub891/');
-outputpath = '.subjects/sub891/';
-    
 cd('/Users/Lily/Documents/Networkofmind')
 addpath /Users/Lily/Documents/Networkofmind/fieldtrip
 ft_defaults
