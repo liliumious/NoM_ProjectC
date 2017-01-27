@@ -1,7 +1,8 @@
 outpath = '.\sub891\';
 load([outpath 'headmodel'], 'mri_unknown')
 
-aalpath = 'ROI_MNI_V4.nii'; 
+aalpath = 'ROI_MNI_V4.nii';
+aal = ft_read_atlas(aalpath); 
 
 cfg          = [];
 cfg.method   = 'interactive';
@@ -10,8 +11,7 @@ mri_spm      = ft_volumerealign(cfg,mri_unknown);
 
 
 %% Trialing on left Gyrus Rectus
-aal = ft_read_atlas(aalpath);
-aal.coordsys = 'spm'; % dodgy!
+
 
 % cfg = [];
 % cfg.roi = 'Rectus_L';
@@ -27,7 +27,7 @@ segmri.anatomy   = mri_spm.anatomy;
 % Attempting to visualise the roi
 cfg                    = [];
 cfg.funparameter       = 'brain';
-cfg.roi                = 'Rectus_L';
+% cfg.roi                = 'all';
 cfg.atlas              = aal;
 cfg.colorbar           = 'no';
 

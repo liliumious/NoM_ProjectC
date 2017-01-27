@@ -1,14 +1,24 @@
 datapath = 'C:\Users\Lily\Dropbox\NetworkofMind';
+megpath = [datapath '\MEG_task\sub-CC722891\meg\task_raw.fif'];
+outputpath = '.\sub891\task\';
 
-megpath = [datapath '\MEG_Resting\sub-CC722891\meg\rest_raw.fif'];
-outputpath = '.\sub891\';
+% Please run make_headmodel.m prior to this script
+load('.\sub891\headmodel')
 
 hdr     = ft_read_header(megpath);
 raw_meg = ft_read_data(megpath);
 hdr
 
-% Please run make_headmodel.m prior to this script
-load([outputpath 'headmodel'])
+% % % Visualise stim info
+% figure
+% hold on
+% trigger_chans = [307:309 320];
+% time = (1:541000)./1000;
+% for chan=trigger_chans
+%     plot(time,raw_meg(chan,:))
+% end
+% legend('show')
+% hold off
 
 %% Todo
 % Add in the parcellation here
@@ -40,7 +50,6 @@ savefig([outputpath 'head_source'])
 
 % A book keeping step prior to leadfield
 [headmod, grad] = ft_prepare_vol_sens(vol, sens)
-
 cfg                  = [];
 cfg.grad             = grad;
 cfg.vol              = headmod;   % volume conduction headmodel
@@ -52,10 +61,7 @@ lf                   = ft_prepare_leadfield(cfg);
 save([outputpath 'sourcemodel'],'lf','-append')
 
 %% Preprocessing of MEG data
-% WARNING will take a lot of memory
-% Not sure why this is set up in 3 steps
-% Please re: http://www.fieldtriptoolbox.org/tutorial/networkanalysis
-load('.\sub891\sourcemodel')
+load('.\sub891\task\sourcemodel')
 load('.\sub891\headmodel')
 
 cfg            = [];
@@ -100,6 +106,5 @@ cfg.grid             = lf; % leadfield, which has the grid information
 cfg.headmodel        = vol; % volume conduction model (headmodel)
 cfg.lcmv.keepfilter  = 'yes';
 cfg.lcmv.fixedori    = 'yes'; % project on axis of most variance using SVD
+cfg.lcmv.projectnoise= 'yes';
 source               = ft_sourceanalysis(cfg, tlock);
-
-
