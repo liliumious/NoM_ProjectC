@@ -20,13 +20,13 @@ end
 legend('show')
 hold off
 
-stimdur = 27001:29000;
+stimdur = 27000:29000;
 figure
 hold on
-trigger_chans = 1:10;
-time = (1:2000)./1000;
+trigger_chans = 1;
+time = 1:2
 for chan=trigger_chans
-    plot(time,raw_meg(chan,stimdur))
+    plot(raw_meg(chan,stimdur))
 end
 hold off
 
