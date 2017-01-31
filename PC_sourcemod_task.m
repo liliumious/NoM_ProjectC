@@ -1,53 +1,76 @@
 datapath = 'C:\Users\Lily\Dropbox\NetworkofMind';
-megpath = [datapath '\MEG_task\sub-CC723395\meg\task_raw.fif'];
-outputpath = '.\sub395\task\';
+megpath = ['C:\Users\Lily\Dropbox\NetworkofMind\MEG_task\sub-CC722891\meg\task_raw.fif'];
+
+% megpath = [datapath '\MEG_task\sub-CC723395\meg\task_raw.fif'];
+outputpath = '.\sub891\task\';
 
 % Please run make_headmodel.m prior to this script
 % load('.\sub891\headmodel')
 
-hdr     = ft_read_header(megpath);
+hdr     = ft_read_header(megpath)
 raw_meg = ft_read_data(megpath);
-hdr
+
 
 % % % Visualise stim info
+figure
+hold on
+trigger_chans = [307:320];
+time = (1:541000)./1000;
+for chan=trigger_chans
+    plot(time,raw_meg(chan,:))
+end
+legend('show')
+hold off
+
+% stimdur = 27001:29000;
 % figure
 % hold on
-% trigger_chans = [307:309 320];
-% time = (1:541000)./1000;
+% trigger_chans = 1:306;
+% time = (1:2000)./1000;
 % for chan=trigger_chans
-%     plot(time,raw_meg(chan,:))
+%     plot(time,raw_meg(chan,stimdur))
 % end
-% legend('show')
 % hold off
 
-%
 triggeronsets = find(diff(raw_meg(320,:))>2);
+
+%309: 8 trigger
+%308: 80
+%307: 84
+%320: 129
 
 cfg            = [];
 cfg.continuous = 'yes';
 cfg.dataset    = megpath;
-cfg.channel    = {'MEG'};
+cfg.channel    = {'megplanar'};
+cfg.detrend    = 'yes';
+cfg.bpfilter   = 'yes';
+cfg.bpfreq     = [1 150];
 megdata        = ft_preprocessing(cfg);
+
+% megdata.trial{1} = abs(megdata.trial{1});
 
 cfg=[];
 cfg.trl = [triggeronsets;triggeronsets+1000;repmat(-100,1,length(triggeronsets))]';
+% cfg.trl = [triggeronsets;triggeronsets+100;repmat(100,1,length(triggeronsets))]';
 ft=ft_redefinetrial(cfg,megdata);
 
-cfg=struct('demean','yes','baselinewindow',[-.1 0],'detrend','yes');
-cfg.bpfilter  = 'yes';
-cfg.bpfreq    = [1 150];
-ft=ft_preprocessing(cfg,ft);
+ft=ft_resampledata(struct('resamplefs',100),ft);
 
-ft=ft_resampledata(struct('resamplefs',200),ft);
+cfg          = [];
+cfg.method   = 'trial';
+cfg.alim     = 2e-11; 
+dummy        = ft_rejectvisual(cfg,ft);
 
-% Noise Covaraince estimation
 cfg                  = [];
-% cfg.covariance       = 'yes';
-% cfg.covariancewindow = 'all'; 
-% cfg.vartrllength     = 2;
 tlock                = ft_timelockanalysis(cfg, ft);
 
-
+% cfg                 = [];
+% cfg.method        = 'distance';
+% cfg.neighbours      = ft_prepare_neighbours(cfg, tlock);
+% cfg.planarmethod    = 'sincos';
+% avgplanar        = ft_megplanar(cfg, tlock);
+avgcomb = ft_combineplanar([],tlock);
 
 figure(1);clf
 ft_multiplotER([],tlock)
@@ -57,19 +80,6 @@ figure(1);clf
 ft_topoplotER(struct('xlim',[.06 .1]),tlock)
 figure(2);clf
 ft_topoplotER(struct('xlim',[-.1 0]),tlock)
-
-
-
-stimdur = 27001:29000;
-figure
-hold on
-trigger_chans = 1:306;
-time = (1:2000)./1000;
-for chan=trigger_chans
-    plot(time,raw_meg(chan,stimdur))
-end
-hold off
-
 
 %% Todo
 % Add in the parcellation here?

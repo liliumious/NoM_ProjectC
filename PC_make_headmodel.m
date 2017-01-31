@@ -20,11 +20,11 @@ cfg.coordsys = 'neuromag';
 mri_neuro    = ft_volumerealign(cfg,mri_unknown)
 save([outputpath 'headmodel'],'mri_neuro','-append')
 
-% headshape = ft_read_headshape(megpath);
-% headshape.fid.pos = double(headshape.fid.pos);
-% cfg.fiducial.nas = [i j k], position of nasion
-% cfg.fiducial.lpa = [i j k], position of LPA
-% cfg.fiducial.rpa = [i j k], position of RPA
+headshape = ft_read_headshape(megpath);
+headshape.fid.pos = double(headshape.fid.pos);
+cfg.fiducial.nas = [i j k], position of nasion
+cfg.fiducial.lpa = [i j k], position of LPA
+cfg.fiducial.rpa = [i j k], position of RPA
 
 % cfg = [];
 % cfg.method = 'headshape';

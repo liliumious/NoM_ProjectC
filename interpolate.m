@@ -10,16 +10,17 @@ source_int_mni = ft_volumerealign(cfg,source_int)
 aalpath = 'ROI_MNI_V4.nii';
 aal = ft_read_atlas(aalpath); 
 
-cfg                    = [];
-cfg.funparameter       = 'brain';
-cfg.atlas              = aal;
-cfg.colorbar           = 'no';
-% cfg.roi                = 'Supp_Motor_Area_L';
-
-ft_sourceplot(cfg, source_int_mni);
+% cfg                    = [];
+% cfg.funparameter       = 'brain';
+% cfg.atlas              = aal;
+% cfg.colorbar           = 'no';
+% % cfg.roi                = 'Supp_Motor_Area_L';
+% 
+% ft_sourceplot(cfg, source_int_mni);
 
 cfg              = [];
 cfg.method       = 'slice';
+
 cfg.funparameter = 'avg.pow';
 figure
 ft_sourceplot(cfg,source_int);
