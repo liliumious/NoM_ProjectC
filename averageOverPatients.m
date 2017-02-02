@@ -10,25 +10,27 @@ currentLine = fgets(file);
 tlockAll = {};
 
 %For all the stimuli
- for i = 1:5
-     j = 1;
-     tlockCurrent = {};
-     %For all the patients we have
-     while ischar(currentLine)
-         
-         %Return -1 if patient does not exist (not downloaded)
-         subject = currentLine;
-         currentData = getSourceData_Function(subject, datapath, currentDirectory, i);
-         if(~isempty(currentData))
-           
+
+j = 1;
+tlockCurrent = {};
+%For all the patients we have
+while ischar(currentLine)
+    
+    %Return -1 if patient does not exist (not downloaded)
+    %Returns an cell array of the tlock for each stimulus
+    currentData = getSourceData_Function(currentLine, datapath, currentDirectory);
+    if(~isempty(currentData))
+        %Every stimuli
+        for i = 1:5
             %Store the tlock data in a cell array
-            tlockCurrent{j} = currentData;
-            j = j + 1;
-         end
-         currentLine = fgets(file);
-     end
-     tlockAll{i} = tlockCurrent;
- end
- 
+            tlockAll{i,j} = currentData{i};
+        end
+        j = j + 1;
+    end
+    currentLine = fgets(file);
+end
+
 
 fclose(file);
+
+save([currentDirectory 'results'],'tlockAll')
