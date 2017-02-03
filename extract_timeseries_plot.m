@@ -1,4 +1,4 @@
-ts_all = zeros(1678,541000);
+ts_all = zeros(1678,561000);
 j = 1;
 
 for i=1:3332
@@ -11,13 +11,15 @@ end
 
 % chns = sort(randi(1678,1,10));
 chns = 830:839;
-time = 200000:260000;
 k=5e-12;
 figure
 hold on 
-for i=1:length(chns)
+for i=chns
     add = i*k;
-    plot(source.time(time),ts_all(chns(i),time)+add)
+    if length(source.avg.mom{i})~=201
+        continue
+    end
+    plot(1:201,source.avg.mom{i}+add)
     set(gca,'Ytick', [])
 end
 hold off

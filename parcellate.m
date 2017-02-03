@@ -27,7 +27,7 @@ segmri.anatomy   = mri_spm.anatomy;
 % Attempting to visualise the roi
 cfg                    = [];
 cfg.funparameter       = 'brain';
-% cfg.roi                = 'all';
+cfg.roi                = 'amygdala_L';
 cfg.atlas              = aal;
 cfg.colorbar           = 'no';
 
