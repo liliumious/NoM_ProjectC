@@ -1,12 +1,12 @@
 %% Funciton
-function tlock = getSourceData_Function(subject, datapath, currentDirectory, stimType)
+function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirectory)
+    disp(subject)
     cd(currentDirectory);
-    megpath = strcat(datapath, '\MEG_Task\sub-', subject, '\meg\task_raw.fif');
-    outputpath = strcat('subjects\sub',subject,'\');
+    megpath = strcat(datapath, 'task\sub-', subject, '\meg\task_raw.fif');
     
     %Checking if the file exists
     if (~(exist(megpath, 'file')))
-        found = -1; %Indicate file was not found
+        tlock = {}; %Indicate file was not found
         return;
     end
     
@@ -17,7 +17,8 @@ function tlock = getSourceData_Function(subject, datapath, currentDirectory, sti
     cfg            = [];
     cfg.continuous = 'yes';
     cfg.dataset    = megpath;
-    cfg.channel    = {'megplanar'};
+    cfg.channel    = {'MEG'};
+%     cfg.channel    = {'megplanar'};
     cfg.detrend    = 'yes';
     cfg.bpfilter   = 'yes';
     cfg.bpfreq     = [1 150];
@@ -26,7 +27,7 @@ function tlock = getSourceData_Function(subject, datapath, currentDirectory, sti
     % Triggers
     % Read in txt file
     filenames = {'AudOnly','AudVid300','AudVid600','AudVid1200','VidOnly'};
-    onsetdir = [datapath 'notes\' subject '\'];
+    onsetdir = strcat(datapath,'data\',subject,'\');
     
     onsets = {};
     for i=1:5
@@ -52,32 +53,20 @@ function tlock = getSourceData_Function(subject, datapath, currentDirectory, sti
     e = trig307(~ismember(trig307,c));
     e = e(~ismember(e,a)); % AudVid 300
     
-    if(stimType == 1)
-        triggeronsets = a;
-    elseif (stimType == 2)
-        triggeronsets = b;
-    elseif (stimType == 3)
-        triggeronsets = c;
-    elseif (stimType == 4)
-        triggeronsets = d;
-    elseif (stimType == 5)
-        triggeronsets = e;
+    triggeronsets={b,e,d,c,a};
+    tlock = cell(1,5);
+    ft=cell(1,5);
+    for i = 1:5
+        cfg=[];
+        cfg.trl = [triggeronsets{i};triggeronsets{i}+1000;repmat(-100,1,length(triggeronsets{i}))]';
+        ft{i}=ft_redefinetrial(cfg,megdata);
+        
+        ft{i}=ft_resampledata(struct('resamplefs',200),ft{i});
+        
+        
+        cfg = [];
+        tlock{i} = ft_timelockanalysis(cfg, ft{i});
     end
-
-    cfg=[];
-    cfg.trl = [triggeronsets;triggeronsets+1000;repmat(-100,1,length(triggeronsets))]';
-    % cfg.trl = [triggeronsets;triggeronsets+100;repmat(100,1,length(triggeronsets))]';
-    ft=ft_redefinetrial(cfg,megdata);
-
-    ft=ft_resampledata(struct('resamplefs',200),ft);
-    
-    
-    cfg                  = [];
-    tlock                = ft_timelockanalysis(cfg, ft);
-    
-    %What does this command do?
-    %avgcomb = ft_combineplanar([],tlock);
-
 
 
 
