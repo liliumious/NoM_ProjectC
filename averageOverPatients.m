@@ -1,5 +1,5 @@
 %Averaging (timelock) over all patients
-datapath = 'C:\Users\Lily\Desktop\CamCan\';
+datapath = 'C:\Users\Lily\Desktop\CamCan';
 currentDirectory = 'C:\Users\Lily\Documents\NoM_ProjectC\';
 
 file = fopen([currentDirectory '\subjectNames.txt']);
@@ -34,3 +34,5 @@ end
 fclose(file);
 
 save([currentDirectory 'results'],'tlockAll')
+
+%% Plotting

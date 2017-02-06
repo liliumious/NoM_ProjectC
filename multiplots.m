@@ -1,5 +1,7 @@
 %% TEMP DRAFT
 
+currentDirectory = 'C:\Users\Lily\Documents\NoM_ProjectC\';
+
 data = currentFT{2};
 
 cfg = [];
@@ -17,7 +19,7 @@ figure
 ft_multiplotTFR(cfg, freq)
 
 load([currentDirectory 'results'],'tlockAll');
-grandavg = ft_timelockgrandaverage([],tlockAll{2,:});
+grandavg = ft_timelockgrandaverage([],tlockAll{5,:});
 cfg = [];    
 cfg.showlabels   = 'yes';
 cfg.layout = 'neuromag306all.lay';
