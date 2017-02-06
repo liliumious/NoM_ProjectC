@@ -1,6 +1,6 @@
-%% Funciton
+%% Gets the data out of the raw_meg file for one patient
+
 function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirectory)
-    disp(subject)
     cd(currentDirectory);
     megpath = strcat(datapath, 'task\sub-', subject, '\meg\task_raw.fif');
     
@@ -10,22 +10,20 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
         return;
     end
     
-    %Code form PC_sourcemod_task
-    hdr     = ft_read_header(megpath)
+    %Read the meg data
     raw_meg = ft_read_data(megpath);
     
     cfg            = [];
     cfg.continuous = 'yes';
     cfg.dataset    = megpath;
     cfg.channel    = {'MEG'};
-%     cfg.channel    = {'megplanar'};
     cfg.detrend    = 'yes';
     cfg.bpfilter   = 'yes';
     cfg.bpfreq     = [1 150];
     megdata        = ft_preprocessing(cfg);
     
     % Triggers
-    % Read in txt file
+    % Read in textfiles of when the triggers were activated
     filenames = {'AudOnly','AudVid300','AudVid600','AudVid1200','VidOnly'};
     onsetdir = strcat(datapath,'data\',subject,'\');
     
@@ -37,7 +35,9 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
         fclose(file);
     end
     clear file filename filenames i onsetdir
-
+    
+    
+    %Calculate which trigger is which (using intersections)
     trig307 = find(diff(raw_meg(307,:))>2);
     trig308 = find(diff(raw_meg(308,:))>2);
     trig309 = find(diff(raw_meg(309,:))>2);
@@ -56,18 +56,20 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
     triggeronsets={b,e,d,c,a};
     tlock = cell(1,5);
     ft=cell(1,5);
+    
+    %For every stimuli store the data
     for i = 1:5
+        
+        %Taking 100 milliseconds before the stimulus and 1 second after
         cfg=[];
         cfg.trl = [triggeronsets{i};triggeronsets{i}+1000;repmat(-100,1,length(triggeronsets{i}))]';
         ft{i}=ft_redefinetrial(cfg,megdata);
         
+        %Resampling rate down to 200Hz
         ft{i}=ft_resampledata(struct('resamplefs',200),ft{i});
         
-        
+        %Running timelock analysis (averging the data)
         cfg = [];
         tlock{i} = ft_timelockanalysis(cfg, ft{i});
     end
-
-
-
 end
