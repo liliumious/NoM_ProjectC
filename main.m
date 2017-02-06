@@ -7,7 +7,7 @@ outputpath = strcat('subjects\sub',subjectNumber,'\');
 PC_makeHeadmodel_Function(subjectNumber, datapath, currentDirectory);
 
 %% Get Sensor Data
-[ft, tlock] = getSourceData_Function(subjectNumber, datapath, currentDirectory);
+[ft, tlock] = getSourceData_Function(subjectNumber, datapath, currentDirectory, downsampfreq);
 save([outputpath, 'sensordata'],'ft','tlock')
 
 %% Make Source Model
