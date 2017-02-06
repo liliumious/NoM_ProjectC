@@ -78,8 +78,7 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
         
         %Resampling rate down to 200Hz
         cfg = [];
-        cfg.resamplefs  = downsampfreq;
-        ft{i}=ft_resampledata(cfg,ft{i});
+        cfg.resamplefs = downsampfreq;
         eog=ft_resampledata(cfg,eog);
 
         
