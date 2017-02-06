@@ -65,6 +65,8 @@ datapath = 'C:\Users\Lily\Desktop\CamCan\';
 currentDirectory = 'C:\Users\Lily\Documents\NoM_ProjectC\';
 mripath =  strcat(datapath, '\anat\sub-', subjectNumber, '\anat\sub-', subjectNumber ,'_T1w.nii');
 
+
+load('/template/headmodel/standard_singleshell');
 cfg = [];
 cfg.grid.xgrid  = -20:1:20;
 cfg.grid.ygrid  = -20:1:20;
@@ -72,7 +74,7 @@ cfg.grid.zgrid  = -20:1:20;
 cfg.grid.unit   = 'cm';
 cfg.grid.tight  = 'yes';
 cfg.inwardshift = -1.5;
-cfg.headmodel        = vol;
+cfg.headmodel   = vol;
 template_grid  = ft_prepare_sourcemodel(cfg);
 
 aalpath = 'ROI_MNI_V4.nii';
@@ -106,6 +108,8 @@ cfg.grid.nonlinear = 'yes';
 cfg.mri            = mri_spm;
 sourcemodel        = ft_prepare_sourcemodel(cfg);
 
+megpath = strcat(datapath, 'task\sub-', subjectNumber, '\meg\task_raw.fif');
+sens = ft_read_sens(megpath);
 figure
 hold on
 ft_plot_vol(hdm,  'facecolor', 'cortex', 'edgecolor', 'none');alpha 0.5; %camlight;
@@ -125,3 +129,67 @@ cfg.lcmv.reducerank = 2; % default for MEG is 2, for EEG is 3
 cfg.grid = sourcemodel;
 [grid] = ft_prepare_leadfield(cfg);
 
+cfg = [];            
+cfg.toilim = [-.18 -.05];
+datapre = ft_redefinetrial(cfg, dataica); 
+cfg.toilim = [.05 .18];
+datapost = ft_redefinetrial(cfg, dataica); 
+
+cfg = [];
+cfg.covariance='yes';
+cfg.covariancewindow = [-.3 .3];
+avg = ft_timelockanalysis(cfg,dataica);
+ 
+cfg = [];
+cfg.covariance='yes';
+avgpre = ft_timelockanalysis(cfg,datapre);
+avgpst = ft_timelockanalysis(cfg,datapost);
+
+cfg=[];
+cfg.method='lcmv';
+cfg.grid=grid;
+cfg.vol=hdm;
+cfg.lcmv.keepfilter='yes';
+cfg.channel = dataica.label;
+sourceavg=ft_sourceanalysis(cfg, avg);
+
+cfg=[];
+cfg.method='lcmv';
+cfg.grid=grid;
+cfg.grid.filter=sourceavg.avg.filter;
+cfg.vol=hdm;
+sourcepreS1=ft_sourceanalysis(cfg, avgpre);
+sourcepstS1=ft_sourceanalysis(cfg, avgpst);
+
+cfg = [];
+cfg.parameter = 'avg.pow';
+cfg.operation = '((x1-x2)./x2)*100';
+S1bl=ft_math(cfg,sourcepstS1,sourcepreS1);
+
+template_mri = ft_read_mri('spm8T1.nii');
+cfg              = [];
+cfg.voxelcoord   = 'no';
+cfg.parameter    = 'pow';
+cfg.interpmethod = 'nearest';
+source_int  = ft_sourceinterpolate(cfg, S1bl, template_mri);
+
+%%
+cfg=[];
+parcel = ft_sourceparcellate(cfg, source_int, atlas);
+
+dummy=atlas;
+for i=1:length(parcel.pow)
+      dummy.tissue(find(dummy.tissue==i))=parcel.pow(i);
+end;
+
+source_int.parcel=dummy.tissue;
+source_int.coordsys = 'mni';
+cfg=[];
+cfg.method = 'ortho';
+cfg.funparameter = 'parcel';
+cfg.funcolormap    = 'jet';
+cfg.renderer = 'zbuffer';
+cfg.location = [-42 -20 6];
+cfg.atlas = atlas;
+cfg.funcolorlim = [-30 30];
+ft_sourceplot(cfg,source_int);
