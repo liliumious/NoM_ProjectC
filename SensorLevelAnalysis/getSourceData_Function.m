@@ -2,7 +2,7 @@
 
 function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirectory)
     cd(currentDirectory);
-    megpath = strcat(datapath, 'task\sub-', subject, '\meg\task_raw.fif');
+    megpath = strcat(datapath, 'MEG task\sub-', subject, '\meg\task_raw.fif');
     
     %Checking if the file exists
     if (~(exist(megpath, 'file')))
@@ -22,10 +22,15 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
     cfg.bpfreq     = [1 150];
     megdata        = ft_preprocessing(cfg);
     
+    cfg.channel    = {'EOG'};
+    cfg.dataset = megpath;
+    cfg.continuous = 'yes';
+    eogdata = ft_preprocessing(cfg);
+    
     % Triggers
     % Read in textfiles of when the triggers were activated
     filenames = {'AudOnly','AudVid300','AudVid600','AudVid1200','VidOnly'};
-    onsetdir = strcat(datapath,'data\',subject,'\');
+    onsetdir = strcat(datapath,'cc700-scored\MEG\release001\','data\',subject,'\');
     
     onsets = {};
     for i=1:5
@@ -65,8 +70,90 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
         cfg.trl = [triggeronsets{i};triggeronsets{i}+1000;repmat(-100,1,length(triggeronsets{i}))]';
         ft{i}=ft_redefinetrial(cfg,megdata);
         
+        %Sampling the EOG data as well
+        cfg=[];
+        cfg.trl = [triggeronsets{i};triggeronsets{i}+1000;repmat(-100,1,length(triggeronsets{i}))]';
+        eog = ft_redefinetrial(cfg,eogdata);
+        
+        
         %Resampling rate down to 200Hz
         ft{i}=ft_resampledata(struct('resamplefs',200),ft{i});
+        eog=ft_resampledata(struct('resamplefs',200),eog);
+        
+        
+        
+        %Removing eyeblinks
+        %perform the independent component analysis (i.e., decompose the data)
+        cfg        = [];
+        cfg.method = 'runica'; % this is the default and uses the implementation from EEGLAB
+        
+        comp = ft_componentanalysis(cfg, ft{i});
+        
+        %Concatanate the components and the EOG
+        concatComp = [];
+        concatEOG = [];
+        for  trial = 1:size(triggeronsets{i},2)
+            concatComp = [concatComp comp.trial{trial}];
+            concatEOG = [concatEOG eog.trial{trial}];
+        end
+        
+ 
+        %Want to check correlation between components
+        corrAll = {};
+        pValue = {};
+     
+        %Rows are sensors
+        %Columns are left eye right eye
+        [corrAll{trial}, pValue{trial}] = corr(concatComp',concatEOG');
+
+        
+      
+        %Significant if it has a p value less than 0.05/306 (multiple
+        %comparison)
+        significant = {};
+        significant = find(pValue{i} < (0.05/306));
+
+        
+        %Finding the union between the statistically significant components
+        %from the first EOG sensor and the second EOG sensor
+        sigEOG1 = significant(significant <= 306);
+        sigEOG2 = significant(significant > 306);
+        sig = union(sigEOG1', (sigEOG2 - 306)');
+        
+          
+        %Removing components
+        %remove the bad components and backproject the data
+        cfg = [];
+        cfg.component = sig; % to be removed component(s)
+        ft{i} = ft_rejectcomponent(cfg, comp, ft{i});
+        
+        %Return the number of components we removed
+        %TO DO add it to return values and change other functions;
+        removed = size(sig,2);
+        
+         
+
+ 
+        
+        
+        
+            
+        
+%         % plot the components for visual inspection
+%         figure
+%         cfg = [];
+%         cfg.component = [1:size(triggeronsets{i},2)];       % specify the component(s) that should be plotted
+%         cfg.layout = 'neuromag306all.lay'; % specify the layout file that should be used for plotting
+%         cfg.comment   = 'no';
+%         ft_topoplotIC(cfg, comp)
+%         
+%         %Alternate plot
+%         figure
+%         cfg = [];
+%         cfg.layout = 'neuromag306all.lay'; % specify the layout file that should be used for plotting
+%         cfg.viewmode = 'component';
+%         ft_databrowser(cfg, comp)
+
         
         %Running timelock analysis (averging the data)
         cfg = [];
