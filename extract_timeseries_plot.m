@@ -3,11 +3,23 @@ j = 1;
 
 for i=1:3332
     if source.inside(i)
-        ts_all(j,:) = source.avg.mom{i};
         disp([i j])
+        ts_all(j,:) = source.avg.mom{i};
         j = j+1;
     end
 end
 
-time = 200000:202000;
-plot(source.time(time),ts_all(1:10,time))
+% chns = sort(randi(1678,1,10));
+chns = 830:839;
+k=5e-12;
+figure
+hold on 
+for i=chns
+    add = i*k;
+    if length(source.avg.mom{i})~=201
+        continue
+    end
+    plot(1:201,source.avg.mom{i}+add)
+    set(gca,'Ytick', [])
+end
+hold off

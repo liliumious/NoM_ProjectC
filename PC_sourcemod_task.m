@@ -1,17 +1,71 @@
-datapath = 'C:\Users\Lily\Dropbox\NetworkofMind';
+datapath = 'C:\Users\Lily\Dropbox\NetworkofMind\';
+megpath = [datapath 'MEG_task\sub-' ccid '\meg\task_raw.fif'];
+curdir = 'C:\Users\Lily\Documents\NoM_ProjectC\';
 
-megpath = [datapath '\MEG_Resting\sub-CC722891\meg\rest_raw.fif'];
-outputpath = '.\sub891\';
-
-hdr     = ft_read_header(megpath);
-raw_meg = ft_read_data(megpath);
-hdr
+outpath = [curdir 'results\' ccid '\'];
 
 % Please run make_headmodel.m prior to this script
-load([outputpath 'headmodel'])
+% load('.\sub891\headmodel')
+
+hdr     = ft_read_header(megpath)
+raw_meg = ft_read_data(megpath);
+
+cfg            = [];
+cfg.continuous = 'yes';
+cfg.dataset    = megpath;
+cfg.channel    = {'megplanar'};
+cfg.detrend    = 'yes';
+cfg.bpfilter   = 'yes';
+cfg.bpfreq     = [1 150];
+megdata        = ft_preprocessing(cfg);
+
+% megdata.trial{1} = abs(megdata.trial{1});
+
+% Stim types to select
+% 1. 'AudOnly'
+% 2. 'AudVid300'
+% 3. 'AudVid600'
+% 4. 'AudVid1200'
+% 5. 'VidOnly'
+load([outpath 'triggers\active'],'act_triggers');
+triggtimes = act_triggers(:,1);
+stimtype = 2;
+triggeronsets = triggtimes(act_triggers(:,2)==stimtype);
+triggeronsets = triggeronsets';
+
+cfg=[];
+cfg.trl = [triggeronsets;triggeronsets+1000;repmat(-100,1,length(triggeronsets))]';
+% cfg.trl = [triggeronsets;triggeronsets+100;repmat(100,1,length(triggeronsets))]';
+ft=ft_redefinetrial(cfg,megdata);
+
+ft=ft_resampledata(struct('resamplefs',200),ft);
+
+% cfg          = [];
+% cfg.method   = 'trial';
+% cfg.alim     = 2e-11; 
+% dummy        = ft_rejectvisual(cfg,ft);
+
+cfg                  = [];
+tlock                = ft_timelockanalysis(cfg, ft);
+
+% cfg                 = [];
+% cfg.method        = 'distance';
+% cfg.neighbours      = ft_prepare_neighbours(cfg, tlock);
+% cfg.planarmethod    = 'sincos';
+% avgplanar        = ft_megplanar(cfg, tlock);
+%avgcomb = ft_combineplanar([],tlock);
+
+figure(1);clf
+ft_multiplotER([],tlock)
+
+
+figure(1);clf
+ft_topoplotER(struct('xlim',[.06 .1]),tlock)
+figure(2);clf
+ft_topoplotER(struct('xlim',[-.1 0]),tlock)
 
 %% Todo
-% Add in the parcellation here
+% Add in the parcellation here?
 
 %% Construct source model
 % Look into using inverse of mri_neuro.transform on sens with ft_transform
@@ -40,7 +94,6 @@ savefig([outputpath 'head_source'])
 
 % A book keeping step prior to leadfield
 [headmod, grad] = ft_prepare_vol_sens(vol, sens)
-
 cfg                  = [];
 cfg.grad             = grad;
 cfg.vol              = headmod;   % volume conduction headmodel
@@ -52,10 +105,7 @@ lf                   = ft_prepare_leadfield(cfg);
 save([outputpath 'sourcemodel'],'lf','-append')
 
 %% Preprocessing of MEG data
-% WARNING will take a lot of memory
-% Not sure why this is set up in 3 steps
-% Please re: http://www.fieldtriptoolbox.org/tutorial/networkanalysis
-load('.\sub891\sourcemodel')
+load('.\sub891\task\sourcemodel')
 load('.\sub891\headmodel')
 
 cfg            = [];
@@ -100,6 +150,5 @@ cfg.grid             = lf; % leadfield, which has the grid information
 cfg.headmodel        = vol; % volume conduction model (headmodel)
 cfg.lcmv.keepfilter  = 'yes';
 cfg.lcmv.fixedori    = 'yes'; % project on axis of most variance using SVD
+cfg.lcmv.projectnoise= 'yes';
 source               = ft_sourceanalysis(cfg, tlock);
-
-
