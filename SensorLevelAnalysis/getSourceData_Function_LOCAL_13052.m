@@ -1,6 +1,6 @@
 %% Gets the data out of the raw_meg file for one patient
 
-function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirectory, downsampfreq)
+function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirectory)
     cd(currentDirectory);
     megpath = strcat(datapath, 'MEG task\sub-', subject, '\meg\task_raw.fif');
     
@@ -77,10 +77,9 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
         
         
         %Resampling rate down to 200Hz
-        cfg = [];
-        cfg.resamplefs = downsampfreq;
-        eog=ft_resampledata(cfg,eog);
-
+        ft{i}=ft_resampledata(struct('resamplefs',200),ft{i});
+        eog=ft_resampledata(struct('resamplefs',200),eog);
+        
         
         
         %Removing eyeblinks
@@ -154,6 +153,7 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
 %         cfg.layout = 'neuromag306all.lay'; % specify the layout file that should be used for plotting
 %         cfg.viewmode = 'component';
 %         ft_databrowser(cfg, comp)
+
         
         %Running timelock analysis (averging the data)
         cfg = [];
