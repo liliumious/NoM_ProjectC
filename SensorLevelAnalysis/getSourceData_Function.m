@@ -1,6 +1,6 @@
 %% Gets the data out of the raw_meg file for one patient
 
-function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirectory)
+function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirectory, downsampfreq)
     cd(currentDirectory);
     megpath = strcat(datapath, 'task\sub-', subject, '\meg\task_raw.fif');
     
@@ -66,7 +66,9 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
         ft{i}=ft_redefinetrial(cfg,megdata);
         
         %Resampling rate down to 200Hz
-        ft{i}=ft_resampledata(struct('resamplefs',200),ft{i});
+        cfg = [];
+        cfg.resamplefs  = downsampfreq;
+        ft{i}=ft_resampledata(cfg,ft{i});
         
         %Running timelock analysis (averging the data)
         cfg = [];
