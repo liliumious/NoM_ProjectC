@@ -53,7 +53,8 @@ cfg.lcmv.fixedori='yes';
 cfg.lcmv.lamda='5%';
 source=ft_sourceanalysis(cfg, avg);
 
-spatialfilter=cat(1,source.avg.filter{:});
+% spatialfilter=cat(1,source.avg.filter{:});
+spatialfilter=source.avg.filter{:};
 virtsens=[];
 for i=1:length(dataica.trial)
     virtsens.trial{i}=spatialfilter*dataica.trial{i};
