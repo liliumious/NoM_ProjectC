@@ -16,10 +16,13 @@ function PC_makeHeadmodel_Function(subjectNumber, datapath, currentDirectory)
     outputpath = strcat('subjects\sub',subjectNumber,'\');
 
     %% Head Model
+    %Read in the MRI
+    %Coordinate system is RAS
     mri_unknown = ft_read_mri(mripath)
     mri_unknown = ft_determine_coordsys(mri_unknown, 'interactive', 'yes');
     save([outputpath 'headmodel'],'mri_unknown')
 
+    %Modify the MRI coordinate system to neuromag
     cfg          = [];
     cfg.method   = 'interactive';
     cfg.coordsys = 'neuromag';
@@ -28,12 +31,15 @@ function PC_makeHeadmodel_Function(subjectNumber, datapath, currentDirectory)
 
     % Note this brain has not been normalised! Todo before comparing to other
     % patients
-
+    
+    %Segment out the brain and ignore the rest of the head
     cfg           = [];
     cfg.output    = 'brain';
     segmentedmri  = ft_volumesegment(cfg, mri_neuro);
     save([outputpath 'headmodel'],'segmentedmri','-append')
 
+    
+    %Combining the slices from the MRI into a 3D volume
     cfg        = [];
     cfg.method = 'singleshell';
     vol        = ft_prepare_headmodel(cfg, segmentedmri);

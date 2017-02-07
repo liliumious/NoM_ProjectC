@@ -2,7 +2,7 @@
 
 function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirectory, downsampfreq)
     cd(currentDirectory);
-    megpath = strcat(datapath, 'MEG task\sub-', subject, '\meg\task_raw.fif');
+    megpath = strcat(datapath, 'MEG Task\sub-', subject, '\meg\task_raw.fif');
     
     %Checking if the file exists
     if (~(exist(megpath, 'file')))
@@ -12,7 +12,7 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
     
     %Read the meg data
     raw_meg = ft_read_data(megpath);
-    
+
     cfg            = [];
     cfg.continuous = 'yes';
     cfg.dataset    = megpath;
@@ -27,7 +27,36 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
     cfg.continuous = 'yes';
     eogdata = ft_preprocessing(cfg);
     
-    % Triggers
+    
+    cfg.channel    = {'ECG'};
+    cfg.dataset = megpath;
+    cfg.continuous = 'yes';
+    ecgdata = ft_preprocessing(cfg);
+    
+    %% Alternative approach so we only process the data once?
+    %Issue, only want to filter MEG data not EOG / ECG data (will this
+    %work?)
+%     cfg            = [];
+%     cfg.continuous = 'yes';
+%     cfg.dataset    = megpath;
+%     cfg.channel    = {'MEG' 'EOG' 'ECG'};
+%     cfg.detrend    = 'yes';
+%     cfg.bpfilter   = 'yes';
+%     cfg.bpfreq     = [1 150];
+%     megdata        = ft_preprocessing(cfg);
+%     
+%     cfg              = [];
+%     cfg.channel      = {'EEG'};
+%     ecg              = ft_selectdata(cfg, data); 
+%     
+%     cfg              = [];
+%     cfg.channel      = {'EOG'};
+%     ecg              = ft_selectdata(cfg, data); 
+
+    
+    
+    
+    %% Triggers
     % Read in textfiles of when the triggers were activated
     filenames = {'AudOnly','AudVid300','AudVid600','AudVid1200','VidOnly'};
     onsetdir = strcat(datapath,'cc700-scored\MEG\release001\','data\',subject,'\');
@@ -62,6 +91,7 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
     tlock = cell(1,5);
     ft=cell(1,5);
     
+    %% Timelock and removing eyeblinks
     %For every stimuli store the data
     for i = 1:5
         
@@ -70,17 +100,18 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
         cfg.trl = [triggeronsets{i};triggeronsets{i}+1000;repmat(-100,1,length(triggeronsets{i}))]';
         ft{i}=ft_redefinetrial(cfg,megdata);
         
-        %Sampling the EOG data as well
-        cfg=[];
-        cfg.trl = [triggeronsets{i};triggeronsets{i}+1000;repmat(-100,1,length(triggeronsets{i}))]';
+        %Sampling the EOG & ECG data as well
         eog = ft_redefinetrial(cfg,eogdata);
+        ecg = ft_redefinetrial(cfg,ecgdata);
         
         
-        %Resampling rate down to 200Hz
+        %Resampling rate down to downsampfreq (usually 140hz)
         cfg = [];
         cfg.resamplefs  = downsampfreq;
-        ft{i}=ft_resampledata(cfg,ft{i});
-        eog=ft_resampledata(cfg,eog);
+        ft{i} = ft_resampledata(cfg,ft{i});
+        
+        eog = ft_resampledata(cfg,eog);
+        ecg = ft_resampledata(cfg,ecg);
 
         
         
@@ -88,40 +119,44 @@ function [ft, tlock] = getSourceData_Function(subject, datapath, currentDirector
         %perform the independent component analysis (i.e., decompose the data)
         cfg        = [];
         cfg.method = 'runica'; % this is the default and uses the implementation from EEGLAB
-        
         comp = ft_componentanalysis(cfg, ft{i});
         
-        %Concatanate the components and the EOG
+        %Concatanate the components and the EOG in order to work out 
+        %which component is causing eyeblinks primarily
         concatComp = [];
         concatEOG = [];
+        concatECG = [];
         for  trial = 1:size(triggeronsets{i},2)
             concatComp = [concatComp comp.trial{trial}];
             concatEOG = [concatEOG eog.trial{trial}];
+            concatECG = [concatECG ecg.trial{trial}];
         end
         
  
         %Want to check correlation between components
-        corrAll = {};
-        pValue = {};
-     
         %Rows are sensors
-        %Columns are left eye right eye
-        [corrAll{trial}, pValue{trial}] = corr(concatComp',concatEOG');
+        [corrAllEOG, pValueEOG] = corr(concatComp',concatEOG');
+        [corrAllECG, pValueECG] = corr(concatComp',concatECG');
 
         
       
         %Significant if it has a p value less than 0.05/306 (multiple
         %comparison)
-        significant = {};
-        significant = find(pValue{i} < (0.05/306));
+        significantEOG = find(pValueEOG < (0.05/306));
+        significantECG = find(pValueECG < (0.05/306));
 
         
         %Finding the union between the statistically significant components
         %from the first EOG sensor and the second EOG sensor
-        sigEOG1 = significant(significant <= 306);
-        sigEOG2 = significant(significant > 306);
-        sig = union(sigEOG1', (sigEOG2 - 306)');
+        sigEOG1 = significantEOG(significantEOG <= 306);
+        sigEOG2 = significantEOG(significantEOG > 306);
+        sigEOG = union(sigEOG1', (sigEOG2 - 306)');
         
+        sigECG1 = significantECG(significantECG <= 306);
+        sigECG2 = significantECG(significantECG > 306);
+        sigECG = union(sigECG1', (sigECG2 - 306)');
+        
+        sig = [sigEOG sigECG];
           
         %Removing components
         %remove the bad components and backproject the data
