@@ -1,37 +1,3 @@
-outpath = '.\sub891\';
-load([outpath 'headmodel'], 'mri_unknown')
-
-aalpath = 'ROI_MNI_V4.nii';
-aal = ft_read_atlas(aalpath); 
-
-cfg          = [];
-cfg.method   = 'interactive';
-cfg.coordsys = 'spm';
-mri_spm      = ft_volumerealign(cfg,mri_unknown);
-
-
-%% Trialing on left Gyrus Rectus
-
-
-% cfg = [];
-% cfg.roi = 'Rectus_L';
-% cfg.inputcoord = 'mni';
-% cfg.atlas = aal;
-% mask = ft_volumelookup(cfg, mri_spm);
-
-cfg           = [];
-cfg.output    = 'brain';
-segmri  = ft_volumesegment(cfg, mri_spm);
-segmri.anatomy   = mri_spm.anatomy;
-
-% Attempting to visualise the roi
-cfg                    = [];
-cfg.funparameter       = 'brain';
-cfg.roi                = 'amygdala_L';
-cfg.atlas              = aal;
-cfg.colorbar           = 'no';
-
-ft_sourceplot(cfg, segmri);
 
 %% 03/02/2017
 cfg=[];
@@ -80,7 +46,6 @@ template_grid  = ft_prepare_sourcemodel(cfg);
 aalpath = 'ROI_MNI_V4.nii';
 atlas = ft_read_atlas(aalpath); 
 
-atlas = ft_convert_units(atlas,'cm');
 cfg = []
 cfg.atlas = atlas;
 cfg.roi = atlas.tissuelabel;
@@ -154,8 +119,6 @@ cfg.channel = dataica.label;
 sourceavg=ft_sourceanalysis(cfg, avg);
 
 
-%%
-
 cfg=[];
 cfg.method='lcmv';
 cfg.grid=grid;
@@ -170,8 +133,6 @@ cfg.operation = '((x1-x2)./x2)*100';
 S1bl=ft_math(cfg,sourcepstS1,sourcepreS1);
 
 template_mri = ft_read_mri('spm8T1.nii');
-aalpath = 'ROI_MNI_V4.nii';
-aal = ft_read_atlas(aalpath);
 
 cfg              = [];
 cfg.voxelcoord   = 'no';
@@ -180,7 +141,7 @@ cfg.interpmethod = 'nearest';
 source_int  = ft_sourceinterpolate(cfg, S1bl, template_mri);
 
 cfg=[];
-parcel = ft_sourceparcellate(cfg, source_int, aal);
+parcel = ft_sourceparcellate(cfg, source_int, atlas);
 
 dummy=atlas;
 for i=1:length(parcel.pow)
@@ -199,6 +160,18 @@ cfg.atlas = atlas;
 cfg.funcolorlim = [-30 30];
 ft_sourceplot(cfg,source_int);
 
+source_int.roi = parcel.brainordinate.tissue;
+cfg=[];
+cfg.method = 'ortho';
+cfg.funparameter = 'roi';
+cfg.funcolormap    = 'jet';
+cfg.renderer = 'zbuffer';
+cfg.location = [-42 -20 6];
+cfg.atlas = atlas;
+cfg.funcolorlim = [1 120];
+ft_sourceplot(cfg,source_int);
+
+%%
 
 cfg = [];
 cfg.method         = 'surface';
@@ -287,11 +260,11 @@ ft_sourceplot(cfg,statint);
 
 %%
 cfg=[];
-parcel = ft_sourceparcellate(cfg, statint, aal);
-parcelmask = ft_sourceparcellate(cfg, maskint, aal);
+parcel = ft_sourceparcellate(cfg, statint, atlas);
+parcelmask = ft_sourceparcellate(cfg, maskint, atlas);
 %% create dummy struct
-dummy=aal;
-dummymask = aal;
+dummy=atlas;
+dummymask = atlas;
 for i=1:length(parcel.stat)
       dummy.tissue(find(dummy.tissue==i))=parcel.stat(i);
       dummymask.tissue(find(dummymask.tissue==i))=parcelmask.mask(i);
